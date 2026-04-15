@@ -1,0 +1,111 @@
+{
+  "log": { "loglevel": "warning" },
+  "dns": {
+    "servers": [
+      {
+        "address": "https://dns.adguard-dns.com/dns-query",
+        "domains": [
+          "geosite:category-ads-all",
+          "geosite:google-ads",
+          "geosite:adobe-ads",
+          "geosite:amazon-ads",
+          "geosite:apple-ads",
+          "geosite:bytedance-ads",
+          "geosite:facebook-ads",
+          "geosite:microsoft-ads",
+          "geosite:spotify-ads",
+          "geosite:twitch-ads"
+        ]
+      },
+      {
+        "address": "https://dns.cloudflare.com/dns-query",
+        "domains": ["geosite:geolocation-!cn"]
+      },
+      "localhost"
+    ],
+    "hosts": {
+      "geosite:category-ads-all": "127.0.0.1",
+      "geosite:google-ads": "127.0.0.1",
+      "domain:doubleclick.net": "127.0.0.1",
+      "domain:googlesyndication.com": "127.0.0.1",
+      "domain:googleadservices.com": "127.0.0.1",
+      "domain:googletagmanager.com": "127.0.0.1",
+      "domain:googletagservices.com": "127.0.0.1",
+      "domain:youtube.com": "127.0.0.1",
+      "domain:youtu.be": "127.0.0.1",
+      "domain:ytimg.com": "127.0.0.1"
+    }
+  },
+  "inbounds": [
+    {
+      "listen": "0.0.0.0",
+      "port": 8080,
+      "protocol": "vless",
+      "settings": {
+        "clients": [{ "id": "9e507b33-65b6-40a4-b37f-eabad158b645" }],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "ws",
+        "security": "none",
+        "wsSettings": { "path": "/prvtspyyy" },
+        "sockopt": { "tcpFastOpen": true }
+      },
+      "sniffing": { "enabled": true, "destOverride": ["http", "tls", "quic"] }
+    },
+    {
+      "listen": "0.0.0.0",
+      "port": 8080,
+      "protocol": "http",
+      "settings": {
+        "response": {
+          "version": "1.1",
+          "status": "200",
+          "reason": "OK",
+          "headers": {
+            "Content-Type": ["text/plain"],
+            "X-Status": ["200K"],
+            "X-AdBlock": ["Active-AllAds-YouTube"]
+          },
+          "body": "Prvtspyyy404 [Status: 200K] - AdBlock Active (All Ads + YouTube)"
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    { "protocol": "freedom", "tag": "direct" },
+    { "protocol": "blackhole", "tag": "block" }
+  ],
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "rules": [
+      {
+        "type": "field",
+        "outboundTag": "block",
+        "domain": [
+          "geosite:category-ads-all",
+          "geosite:google-ads",
+          "geosite:adobe-ads",
+          "geosite:amazon-ads",
+          "geosite:apple-ads",
+          "geosite:bytedance-ads",
+          "geosite:facebook-ads",
+          "geosite:microsoft-ads",
+          "geosite:spotify-ads",
+          "geosite:twitch-ads",
+          "domain:doubleclick.net",
+          "domain:googlesyndication.com",
+          "domain:googleadservices.com",
+          "domain:googletagmanager.com",
+          "domain:googletagservices.com",
+          "domain:youtube.com",
+          "domain:youtu.be",
+          "domain:ytimg.com"
+        ]
+      },
+      { "type": "field", "outboundTag": "direct", "network": "tcp,udp" }
+    ]
+  },
+  "transport": { "maxBufferSize": 10485760, "maxStreamBufferSize": 5242880 },
+  "mux": { "enabled": true, "concurrency": 16 }
+      }
