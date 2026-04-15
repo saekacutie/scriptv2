@@ -1,73 +1,48 @@
 {
-  "log": { "loglevel": "warning" },
+  "log": { "loglevel": "none" },
   "dns": {
     "servers": [
-      {
-        "address": "https://dns.adguard-dns.com/dns-query",
-        "domains": [
-          "geosite:category-ads-all",
-          "geosite:google-ads",
-          "geosite:adobe-ads",
-          "geosite:amazon-ads",
-          "geosite:apple-ads",
-          "geosite:bytedance-ads",
-          "geosite:facebook-ads",
-          "geosite:microsoft-ads",
-          "geosite:spotify-ads",
-          "geosite:twitch-ads"
-        ]
-      },
-      {
-        "address": "https://dns.cloudflare.com/dns-query",
-        "domains": ["geosite:geolocation-!cn"]
-      },
-      "localhost"
-    ],
-    "hosts": {
-      "geosite:category-ads-all": "127.0.0.1",
-      "geosite:google-ads": "127.0.0.1",
-      "domain:doubleclick.net": "127.0.0.1",
-      "domain:googlesyndication.com": "127.0.0.1",
-      "domain:googleadservices.com": "127.0.0.1",
-      "domain:googletagmanager.com": "127.0.0.1",
-      "domain:googletagservices.com": "127.0.0.1",
-      "domain:youtube.com": "127.0.0.1",
-      "domain:youtu.be": "127.0.0.1",
-      "domain:ytimg.com": "127.0.0.1"
-    }
+      "https+local://dns.google/dns-query",
+      "https+local://cloudflare-dns.com/dns-query",
+      "1.1.1.1",
+      "8.8.8.8"
+    ]
   },
   "inbounds": [
     {
-      "listen": "0.0.0.0",
       "port": 8080,
       "protocol": "vless",
       "settings": {
-        "clients": [{ "id": "9e507b33-65b6-40a4-b37f-eabad158b645" }],
-        "decryption": "none"
+        "clients": [
+          { "id": "TOKEN_AUTH-Prvtspyyy-1111-1111-937373339593", "email": "user1" },
+          { "id": "TOKEN_AUTH-Prvtspyyy-2222-2222-033361000748", "email": "user2" },
+          { "id": "TOKEN_AUTH-Prvtspyyy-3333-3333-111529994838", "email": "user3" },
+          { "id": "TOKEN_AUTH-Prvtspyyy-4444-4444-444738212858", "email": "user4" },
+          { "id": "TOKEN_AUTH-Prvtspyyy-5555-5555-000765844383", "email": "user5" },
+          { "id": "TOKEN_AUTH-Prvtspyyy-6666-6666-663932888496", "email": "user6" },
+          { "id": "TOKEN_AUTH-Prvtspyyy-7777-7777-000784447379", "email": "user7" },
+          { "id": "TOKEN_AUTH-Prvtspyyy-8888-8888-008382226484", "email": "user8" },
+          { "id": "TOKEN_AUTH-Prvtspyyy-9999-9999-888483317896", "email": "user9" },
+          { "id": "TOKEN_AUTH-Prvtspyyy-0000-0000-288102279599", "email": "user10" }
+        ],
+        "decryption": "none",
+        "fallbacks": [{ "dest": 8081 }]
       },
       "streamSettings": {
         "network": "ws",
-        "security": "none",
-        "wsSettings": { "path": "/prvtspyyy" },
-        "sockopt": { "tcpFastOpen": true }
+        "wsSettings": { "path": "/prvtspyyy" }
       },
       "sniffing": { "enabled": true, "destOverride": ["http", "tls", "quic"] }
     },
     {
-      "listen": "0.0.0.0",
-      "port": 8080,
+      "listen": "127.0.0.1",
+      "port": 8081,
       "protocol": "http",
       "settings": {
         "response": {
-          "version": "1.1",
-          "status": "200",
-          "reason": "OK",
-          "headers": {
-            "Content-Type": ["text/plain"],
-            "X-Status": ["200K"],
-            "X-AdBlock": ["Active-AllAds-YouTube"]
-          },
-          "body": "Prvtspyyy404 [Status: 200K] - AdBlock Active (All Ads + YouTube)"
+          "status": 200,
+          "headers": { "Content-Type": ["text/html"] },
+          "body": "<html><body>PRIVATE SERVER: Prvtspyyy404</body></html>"
         }
       }
     }
@@ -84,28 +59,87 @@
         "outboundTag": "block",
         "domain": [
           "geosite:category-ads-all",
-          "geosite:google-ads",
-          "geosite:adobe-ads",
-          "geosite:amazon-ads",
-          "geosite:apple-ads",
-          "geosite:bytedance-ads",
-          "geosite:facebook-ads",
-          "geosite:microsoft-ads",
-          "geosite:spotify-ads",
-          "geosite:twitch-ads",
-          "domain:doubleclick.net",
-          "domain:googlesyndication.com",
-          "domain:googleadservices.com",
-          "domain:googletagmanager.com",
-          "domain:googletagservices.com",
-          "domain:youtube.com",
-          "domain:youtu.be",
-          "domain:ytimg.com"
+          "doubleclick.net",
+          "googleadservices.com",
+          "googlesyndication.com",
+          "adservice.google.com",
+          "pagead2.googlesyndication.com",
+          "tpc.googlesyndication.com",
+          "partner.googleadservices.com",
+          "www.googletagmanager.com",
+          "www.googletagservices.com",
+          "ads.youtube.com",
+          "ad.youtube.com",
+          "imasdk.googleapis.com",
+          "an.facebook.com",
+          "connect.facebook.net",
+          "staticxx.facebook.com",
+          "ads.twitter.com",
+          "analytics.twitter.com",
+          "ads-twitter.com",
+          "advertising.apple.com",
+          "iadsdk.apple.com",
+          "ads.tiktok.com",
+          "analytics.tiktok.com",
+          "mon.tiktok.com",
+          "log.tiktok.com",
+          "snap-ads.snapchat.com",
+          "ads.snapchat.com",
+          "sc-analytics.appspot.com",
+          "ads.linkedin.com",
+          "px.ads.linkedin.com",
+          "ads.reddit.com",
+          "rp.reddit.com",
+          "pixel.reddit.com",
+          "c2.taboola.com",
+          "trc.taboola.com",
+          "outbrain.com",
+          "widgets.outbrain.com",
+          "criteo.com",
+          "rtax.criteo.com",
+          "static.criteo.net",
+          "amazon-adsystem.com",
+          "s.amazon-adsystem.com",
+          "ads.yahoo.com",
+          "analytics.yahoo.com",
+          "secure.adnxs.com",
+          "ib.adnxs.com",
+          "scorecardresearch.com",
+          "pixel.quantserve.com",
+          "pubads.g.doubleclick.net",
+          "securepubads.g.doubleclick.net",
+          "adform.net",
+          "media.net",
+          "contextual.media.net",
+          "rubiconproject.com",
+          "openx.net",
+          "pubmatic.com",
+          "ads.pubmatic.com",
+          "springserve.com",
+          "advertising.com",
+          "mathtag.com",
+          "moatads.com",
+          "sharethis.com",
+          "addthis.com",
+          "hotjar.com",
+          "static.hotjar.com",
+          "script.hotjar.com",
+          "api.mixpanel.com",
+          "api.segment.io",
+          "cdn.segment.com",
+          "api.amplitude.com",
+          "cdn.amplitude.com",
+          "intercom.io",
+          "chartbeat.com",
+          "ping.chartbeat.net",
+          "2mdn.net"
         ]
       },
-      { "type": "field", "outboundTag": "direct", "network": "tcp,udp" }
-    ]
-  },
-  "transport": { "maxBufferSize": 10485760, "maxStreamBufferSize": 5242880 },
-  "mux": { "enabled": true, "concurrency": 16 }
+      {
+        "type": "field",
+        "outboundTag": "direct",
+        "network": "udp,tcp"
       }
+    ]
+  }
+}

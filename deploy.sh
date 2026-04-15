@@ -1,212 +1,203 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -e
 
 # ==============================================
-#        VLESS GCP AUTO DEPLOYER v2
-#        github.com/saekacutie/scriptv2
-#        Dynamic Terminal UI Edition
+#           VLESS WS TLS GCP AUTO DEPLOYER
+#              created by prvtspyyy
 # ==============================================
 
-# --- Colors ---
-BOLD='\033[1m'; RESET='\033[0m'
-GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; RED='\033[0;31m'
-LRED='\033[1;31m'; LYELLOW='\033[1;33m'; LGREEN='\033[1;32m'; LCYAN='\033[1;36m'
-LBLUE='\033[1;34m'; LMAGENTA='\033[1;35m'; LWHITE='\033[1;37m'
-BLUE='\033[0;34m'; MAGENTA='\033[0;35m'; WHITE='\033[0;37m'
+# --- ANSI color & style definitions ---
+BOLD='\033[1m'
+RESET='\033[0m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[0;37m'
+LRED='\033[1;31m'
+LGREEN='\033[1;32m'
+LYELLOW='\033[1;33m'
+LBLUE='\033[1;34m'
+LMAGENTA='\033[1;35m'
+LCYAN='\033[1;36m'
+LWHITE='\033[1;37m'
 
-# --- Rainbow Colors Array ---
-RAINBOW=("${LRED}" "${LYELLOW}" "${LGREEN}" "${LCYAN}" "${LBLUE}" "${LMAGENTA}")
+C_SUCCESS="${BOLD}${LGREEN}"
+C_ERROR="${BOLD}${LRED}"
+C_WARN="${BOLD}${LYELLOW}"
+C_INFO="${BOLD}${LCYAN}"
+C_HEADER="${BOLD}${LMAGENTA}"
+C_ACCENT="${BOLD}${LBLUE}"
+C_PLAIN="${BOLD}${WHITE}"
 
-# --- Hide Cursor ---
-tput civis
-restore_cursor() { tput cnorm; }
-trap restore_cursor EXIT
-
-# --- Dynamic Box Function ---
-dynamic_box() {
-    local title="$1"
-    local status="$2"
-    local color="$3"
-    local width=70
-    local inner_width=$((width - 4))
-    
-    clear
-    echo ""
-    echo -e "${color}${BOLD}╔$(printf '═%.0s' $(seq 1 $width))╗${RESET}"
-    echo -e "${color}${BOLD}║${RESET} ${WHITE}${title}${RESET}$(printf '%*s' $((width - ${#title} - 3)) '')${color}${BOLD}║${RESET}"
-    echo -e "${color}${BOLD}╠$(printf '═%.0s' $(seq 1 $width))╣${RESET}"
-    echo -e "${color}${BOLD}║${RESET}$(printf '%*s' $((width - 2)) '')${color}${BOLD}║${RESET}"
-    echo -e "${color}${BOLD}║${RESET}   ${BOLD}Status:${RESET} ${status}$(printf '%*s' $((width - ${#status} - 13)) '')${color}${BOLD}║${RESET}"
-    echo -e "${color}${BOLD}║${RESET}$(printf '%*s' $((width - 2)) '')${color}${BOLD}║${RESET}"
-    echo -e "${color}${BOLD}╚$(printf '═%.0s' $(seq 1 $width))╝${RESET}"
-    echo ""
-}
-
-# --- Troubleshooting Box ---
-troubleshooting_box() {
-    local issue="$1"
-    local solution="$2"
-    local color="${RAINBOW[$((RANDOM % 6))]}"
-    local width=70
-    
-    echo -e "${color}${BOLD}┌$(printf '─%.0s' $(seq 1 $width))┐${RESET}"
-    echo -e "${color}${BOLD}│${RESET} ${YELLOW}${BOLD}TROUBLESHOOTING:${RESET} ${issue}$(printf '%*s' $((width - ${#issue} - 18)) '')${color}${BOLD}│${RESET}"
-    echo -e "${color}${BOLD}├$(printf '─%.0s' $(seq 1 $width))┤${RESET}"
-    echo -e "${color}${BOLD}│${RESET} ${GREEN}${BOLD}SOLUTION:${RESET} ${solution}$(printf '%*s' $((width - ${#solution} - 12)) '')${color}${BOLD}│${RESET}"
-    echo -e "${color}${BOLD}└$(printf '─%.0s' $(seq 1 $width))┘${RESET}"
-}
-
-# --- Info Box ---
-info_box() {
-    local message="$1"
-    local color="${RAINBOW[$((RANDOM % 6))]}"
-    local width=70
-    
-    echo -e "${color}${BOLD}┌$(printf '─%.0s' $(seq 1 $width))┐${RESET}"
-    echo -e "${color}${BOLD}│${RESET} ${CYAN}${BOLD}INFO:${RESET} ${message}$(printf '%*s' $((width - ${#message} - 8)) '')${color}${BOLD}│${RESET}"
-    echo -e "${color}${BOLD}└$(printf '─%.0s' $(seq 1 $width))┘${RESET}"
-}
-
-# --- Countdown Timer ---
-countdown() {
-    local seconds=$1
-    local message="$2"
-    local width=50
-    local color="${RAINBOW[$((RANDOM % 6))]}"
-    
-    for ((i=seconds; i>0; i--)); do
-        echo -ne "\r${color}${BOLD}┌$(printf '─%.0s' $(seq 1 $width))┐${RESET}\n"
-        echo -ne "${color}${BOLD}│${RESET} ${message} ${BOLD}${i}s${RESET}$(printf '%*s' $((width - ${#message} - ${#i} - 5)) '')${color}${BOLD}│${RESET}\n"
-        echo -ne "${color}${BOLD}└$(printf '─%.0s' $(seq 1 $width))┘${RESET}"
-        sleep 1
-        echo -ne "\033[3A\033[2K"
-    done
-}
-
-# --- Progress Spinner ---
-spinner() {
-    local pid=$1
-    local message="$2"
-    local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-    local color="${RAINBOW[$((RANDOM % 6))]}"
-    
-    echo -ne "${color}${BOLD}[${spinstr:0:1}]${RESET} ${message}"
-    local i=0
-    while kill -0 "$pid" 2>/dev/null; do
-        printf "\r${color}${BOLD}[%s]${RESET} ${message}" "${spinstr:i++%${#spinstr}:1}"
-        sleep 0.1
-    done
-    printf "\r${GREEN}${BOLD}[✔]${RESET} ${message} ${GREEN}COMPLETE${RESET}\n"
+# --- Bold mathematical Unicode converter ---
+math_bold() {
+    echo "$1" | sed -e 's/A/𝗔/g' -e 's/B/𝗕/g' -e 's/C/𝗖/g' -e 's/D/𝗗/g' -e 's/E/𝗘/g' \
+        -e 's/F/𝗙/g' -e 's/G/𝗚/g' -e 's/H/𝗛/g' -e 's/I/𝗜/g' -e 's/J/𝗝/g' \
+        -e 's/K/𝗞/g' -e 's/L/𝗟/g' -e 's/M/𝗠/g' -e 's/N/𝗡/g' -e 's/O/𝗢/g' \
+        -e 's/P/𝗣/g' -e 's/Q/𝗤/g' -e 's/R/𝗥/g' -e 's/S/𝗦/g' -e 's/T/𝗧/g' \
+        -e 's/U/𝗨/g' -e 's/V/𝗩/g' -e 's/W/𝗪/g' -e 's/X/𝗫/g' -e 's/Y/𝗬/g' \
+        -e 's/Z/𝗭/g' -e 's/0/𝟬/g' -e 's/1/𝟭/g' -e 's/2/𝟮/g' -e 's/3/𝟯/g' \
+        -e 's/4/𝟰/g' -e 's/5/𝟱/g' -e 's/6/𝟲/g' -e 's/7/𝟳/g' -e 's/8/𝟴/g' \
+        -e 's/9/𝟵/g'
 }
 
 # --- Rainbow Banner ---
 rainbow_banner() {
     clear
-    local width=80
     echo ""
-    echo -e "${LRED}${BOLD}╔$(printf '═%.0s' $(seq 1 $width))╗${RESET}"
-    echo -e "${LRED}${BOLD}║${RESET}         ${WHITE}${BOLD}██████╗ ██████╗ ██╗   ██╗████████╗███████╗██████╗ ██╗   ██╗${LRED}${BOLD}         ║${RESET}"
-    echo -e "${LYELLOW}${BOLD}║${RESET}         ${WHITE}${BOLD}██╔══██╗██╔══██╗██║   ██║╚══██╔══╝██╔════╝██╔══██╗╚██╗ ██╔╝${LYELLOW}${BOLD}         ║${RESET}"
-    echo -e "${LGREEN}${BOLD}║${RESET}         ${WHITE}${BOLD}██████╔╝██████╔╝██║   ██║   ██║   ███████╗██████╔╝ ╚████╔╝ ${LGREEN}${BOLD}         ║${RESET}"
-    echo -e "${LCYAN}${BOLD}║${RESET}         ${WHITE}${BOLD}██╔═══╝ ██╔══██╗╚██╗ ██╔╝   ██║   ╚════██║██╔═══╝   ╚██╔╝  ${LCYAN}${BOLD}         ║${RESET}"
-    echo -e "${LBLUE}${BOLD}║${RESET}         ${WHITE}${BOLD}██║     ██║  ██║ ╚████╔╝    ██║   ███████║██║        ██║   ${LBLUE}${BOLD}         ║${RESET}"
-    echo -e "${LMAGENTA}${BOLD}║${RESET}         ${WHITE}${BOLD}╚═╝     ╚═╝  ╚═╝  ╚═══╝     ╚═╝   ╚══════╝╚═╝        ╚═╝   ${LMAGENTA}${BOLD}         ║${RESET}"
-    echo -e "${LRED}${BOLD}║${RESET}                                                                                ${LRED}${BOLD}║${RESET}"
-    echo -e "${LYELLOW}${BOLD}║${RESET}                    ${WHITE}${BOLD}VLESS GCP AUTO DEPLOYER v2${LYELLOW}${BOLD}                          ║${RESET}"
-    echo -e "${LGREEN}${BOLD}║${RESET}                    ${CYAN}github.com/saekacutie/scriptv2${LGREEN}${BOLD}                     ║${RESET}"
-    echo -e "${LRED}${BOLD}╚$(printf '═%.0s' $(seq 1 $width))╝${RESET}"
+        echo ""
+    echo -e "${BOLD}${LRED}╔══════════════════════════════════════════════════════════════════════════════╗${RESET}"
+    echo -e "${BOLD}${LRED}║${RESET}                                                                                ${BOLD}${LRED}║${RESET}"
+    echo -e "${BOLD}${LRED}║${RESET}         ${BOLD}${WHITE}██████╗ ██████╗ ██╗   ██╗████████╗███████╗██████╗ ██╗   ██╗${LRED}         ${BOLD}${LRED}║${RESET}"
+    echo -e "${BOLD}${LRED}║${RESET}         ${BOLD}${WHITE}██╔══██╗██╔══██╗██║   ██║╚══██╔══╝██╔════╝██╔══██╗╚██╗ ██╔╝${LRED}         ${BOLD}${LRED}║${RESET}"
+    echo -e "${BOLD}${LRED}║${RESET}         ${BOLD}${WHITE}██████╔╝██████╔╝██║   ██║   ██║   ███████╗██████╔╝ ╚████╔╝ ${LRED}         ${BOLD}${LRED}║${RESET}"
+    echo -e "${BOLD}${LRED}║${RESET}         ${BOLD}${WHITE}██╔═══╝ ██╔══██╗╚██╗ ██╔╝   ██║   ╚════██║██╔═══╝   ╚██╔╝  ${LRED}         ${BOLD}${LRED}║${RESET}"
+    echo -e "${BOLD}${LRED}║${RESET}         ${BOLD}${WHITE}██║     ██║  ██║ ╚████╔╝    ██║   ███████║██║        ██║   ${LRED}         ${BOLD}${LRED}║${RESET}"
+    echo -e "${BOLD}${LRED}║${RESET}         ${BOLD}${WHITE}╚═╝     ╚═╝  ╚═╝  ╚═══╝     ╚═╝   ╚══════╝╚═╝        ╚═╝   ${LRED}         ${BOLD}${LRED}║${RESET}"
+    echo -e "${BOLD}${LRED}║${RESET}                                                                                ${BOLD}${LRED}║${RESET}"
+    echo -e "${BOLD}${LRED}║${RESET}                    ${BOLD}${WHITE}Automated Deployment Made Easy${RESET}                         ${BOLD}${LRED}║${RESET}"
+    echo -e "${BOLD}${LRED}║${RESET}           ${CYAN}For Complains and Concers Message Saeka Tojirp Privately${RESET}          ${BOLD}${LRED}║${RESET}"
+    echo -e "${BOLD}${LRED}║${RESET}                                                                                ${BOLD}${LRED}║${RESET}"
+    echo -e "${BOLD}${LRED}╚══════════════════════════════════════════════════════════════════════════════╝${RESET}"
     echo ""
 }
 
-# ==============================================
-#        MAIN EXECUTION
-# ==============================================
-
 rainbow_banner
-countdown 3 "Initializing deployment environment..."
-dynamic_box "API VERIFICATION" "Enabling required APIs..." "${LBLUE}"
 
-# Enable APIs in background
-gcloud services enable run.googleapis.com containerregistry.googleapis.com cloudbuild.googleapis.com --quiet 2>/dev/null &
-API_PID=$!
-spinner $API_PID "Enabling Cloud APIs"
-dynamic_box "API VERIFICATION" "APIs enabled successfully" "${GREEN}"
-sleep 1
+# ==============================================
+#        FAILSAFE API VERIFICATION
+# ==============================================
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo -e "${C_PLAIN}$(math_bold "API VERIFICATION")${RESET}"
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
 
-# Project Setup
-dynamic_box "PROJECT CONFIGURATION" "Detecting active project..." "${LYELLOW}"
+REQUIRED_APIS=("run.googleapis.com" "containerregistry.googleapis.com" "cloudbuild.googleapis.com" "compute.googleapis.com")
+API_NAMES=("Cloud Run API" "Container Registry API" "Cloud Build API" "Compute Engine API")
+
+for i in "${!REQUIRED_APIS[@]}"; do
+    API="${REQUIRED_APIS[$i]}"
+    NAME="${API_NAMES[$i]}"
+    echo -e "${C_INFO}[*]${RESET} Checking ${BOLD}${NAME}${RESET}..."
+    
+    # Check if API is already enabled
+    if gcloud services list --enabled --filter="name:${API}" --format="value(name)" 2>/dev/null | grep -q "${API}"; then
+        echo -e "${C_SUCCESS}[✔]${RESET} ${NAME} already enabled"
+    else
+        echo -e "${C_WARN}[!]${RESET} Enabling ${NAME}..."
+        # Use || true to prevent set -e from killing script
+        gcloud services enable "${API}" --quiet 2>/dev/null || true
+        echo -e "${C_SUCCESS}[✔]${RESET} ${NAME} enablement requested"
+    fi
+done
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo ""
+
+# --- Project Setup ---
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 if [ -z "$PROJECT_ID" ]; then
     PROJECT_ID="vless-$(date +%s)"
-    gcloud projects create "$PROJECT_ID" --name="VLESS-Proxy" --quiet
+    gcloud projects create "$PROJECT_ID" --name="VLESS-WS-TLS" --quiet
     gcloud config set project "$PROJECT_ID" --quiet
 fi
-dynamic_box "PROJECT CONFIGURATION" "Project: $PROJECT_ID" "${GREEN}"
-sleep 1
+echo -e "${C_SUCCESS}[✔]${RESET} Project: ${BOLD}${PROJECT_ID}${RESET}"
+echo ""
 
-# Region Selection
-dynamic_box "REGION SELECTION" "Optimizing for Qwiklabs..." "${LMAGENTA}"
+# ==============================================
+#        AUTOMATIC REGION SELECTION (QWIKLABS)
+# ==============================================
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo -e "${C_PLAIN}$(math_bold "REGION SELECTION")${RESET}"
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+
+# Qwiklabs projects are restricted to us-central1 by organization policy.
+# Any other region will fail with a policy violation.
 REGION="us-central1"
-info_box "Qwiklabs environment detected. Using us-central1 (policy-compliant)"
-dynamic_box "REGION SELECTION" "Region: $REGION" "${GREEN}"
-sleep 1
 
-# Service Name
-dynamic_box "SERVICE CONFIGURATION" "Enter service name..." "${LCYAN}"
-read -p "$(echo -e "${CYAN}[?]${RESET} Service name [default: prvtspyyy404]: ")" SERVICE_NAME_INPUT
-SERVICE_NAME="${SERVICE_NAME_INPUT:-prvtspyyy404}"
+echo -e "${C_INFO}[*]${RESET} Qwiklabs environment detected."
+echo -e "${C_SUCCESS}[✔]${RESET} Automatically locked to region: ${BOLD}${WHITE}${REGION}${RESET}"
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo ""
+
+# Customizable service name
+DEFAULT_SERVICE_NAME="prvtspyyy404"
+read -p "$(echo -e "${C_INFO}[?]${RESET} Enter service name [default: ${DEFAULT_SERVICE_NAME}]: ")" SERVICE_NAME_INPUT
+SERVICE_NAME="${SERVICE_NAME_INPUT:-$DEFAULT_SERVICE_NAME}"
 SERVICE_NAME=$(echo "$SERVICE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
-[ -z "$SERVICE_NAME" ] && SERVICE_NAME="prvtspyyy404"
-dynamic_box "SERVICE CONFIGURATION" "Service: $SERVICE_NAME" "${GREEN}"
-sleep 1
+if [ -z "$SERVICE_NAME" ]; then
+    SERVICE_NAME="$DEFAULT_SERVICE_NAME"
+fi
+echo -e "${C_SUCCESS}[✔]${RESET} Service name: ${BOLD}${SERVICE_NAME}${RESET}"
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo ""
 
-# CPU/RAM Selection
-dynamic_box "CPU AND MEMORY" "Select configuration..." "${LBLUE}"
-echo ""
-echo -e "  ${WHITE}[1]${RESET} 1 vCPU, 1 GiB"
-echo -e "  ${WHITE}[2]${RESET} 1 vCPU, 2 GiB"
-echo -e "  ${WHITE}[3]${RESET} 2 vCPU, 2 GiB"
-echo -e "  ${WHITE}[4]${RESET} 2 vCPU, 4 GiB ${GREEN}(RECOMMENDED)${RESET}"
-echo -e "  ${WHITE}[5]${RESET} 4 vCPU, 8 GiB"
-echo ""
-read -p "$(echo -e "${CYAN}[?]${RESET} Select [1-5] [default: 4]: ")" CPU_RAM_CHOICE
-case ${CPU_RAM_CHOICE:-4} in
+# ==============================================
+#        CPU AND MEMORY SELECTION (FIXED)
+# ==============================================
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo -e "${C_PLAIN}$(math_bold "CPU AND MEMORY SELECTION")${RESET}"
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo -e "  ${C_ACCENT}[1]${RESET} 1 vCPU, 1 GiB RAM"
+echo -e "  ${C_ACCENT}[2]${RESET} 1 vCPU, 2 GiB RAM"
+echo -e "  ${C_ACCENT}[3]${RESET} 2 vCPU, 2 GiB RAM"
+echo -e "  ${C_ACCENT}[4]${RESET} 2 vCPU, 4 GiB RAM ${GREEN}(RECOMMENDED)${RESET}"
+echo -e "  ${C_ACCENT}[5]${RESET} 4 vCPU, 8 GiB RAM"
+echo -e "  ${C_ACCENT}[6]${RESET} 4 vCPU, 16 GiB RAM"
+read -p "$(echo -e "${C_INFO}[?]${RESET} Select configuration [1-6] [default: 4]: ")" CPU_RAM_CHOICE
+
+# Default to 4 if empty
+CPU_RAM_CHOICE="${CPU_RAM_CHOICE:-4}"
+
+case $CPU_RAM_CHOICE in
     1) CPU="1"; MEMORY="1Gi" ;;
     2) CPU="1"; MEMORY="2Gi" ;;
     3) CPU="2"; MEMORY="2Gi" ;;
     4) CPU="2"; MEMORY="4Gi" ;;
     5) CPU="4"; MEMORY="8Gi" ;;
-    *) CPU="2"; MEMORY="4Gi" ;;
+    6) CPU="4"; MEMORY="16Gi" ;;
+    *) CPU="2"; MEMORY="4Gi" ; echo -e "${C_WARN}[!]${RESET} Invalid choice, using recommended (2 vCPU, 4 GiB)" ;;
 esac
-dynamic_box "CPU AND MEMORY" "CPU: $CPU, Memory: $MEMORY" "${GREEN}"
-sleep 1
 
-# Build Parameters
-UUID=$(grep -o '"id": *"[^"]*"' config.json 2>/dev/null | head -1 | sed 's/.*"id": *"\([^"]*\)".*/\1/' || echo "9e507b33-65b6-40a4-b37f-eabad158b645")
-WS_PATH=$(grep -o '"path": *"[^"]*"' config.json 2>/dev/null | head -1 | sed 's/.*"path": *"\([^"]*\)".*/\1/' || echo "/prvtspyyy")
+echo -e "${C_SUCCESS}[✔]${RESET} CPU: ${BOLD}${CPU}${RESET}, Memory: ${BOLD}${MEMORY}${RESET}"
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo ""
+# ==============================================
+#        ULTRA-STABLE DEPLOYMENT ENGINE
+# ==============================================
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo -e "${C_PLAIN}$(math_bold "INITIATING FULL SYSTEM DEPLOYMENT")${RESET}"
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+
+# 1. PRE-FLIGHT CHECK (Ensures APIs are ready)
+echo -ne "${C_INFO}[*]${RESET} Verifying Google Cloud Environment...\r"
+gcloud services enable run.googleapis.com containerregistry.googleapis.com > /dev/null 2>&1 || true
+echo -e "${C_SUCCESS}[✔]${RESET} Verifying Google Cloud Environment... READY! \033[K"
+
+# Extract Variables
+UUID=$(grep -o '"id": *"[^"]*"' config.json | cut -d'"' -f4 | head -n 1)
+WS_PATH=$(grep -o '"path": *"[^"]*"' config.json | cut -d'"' -f4 | head -n 1)
 IMAGE="gcr.io/$PROJECT_ID/$SERVICE_NAME:latest"
 
-dynamic_box "DEPLOYMENT PARAMETERS" "UUID: ${UUID:0:16}... | Path: $WS_PATH" "${LMAGENTA}"
-sleep 1
+# 2. BUILD
+echo -ne "${C_INFO}[*]${RESET} Building high-speed container image...\r"
+if ! docker build -t "$IMAGE" . --quiet > /dev/null 2>&1; then
+    echo -e "${C_ERROR}[✘]${RESET} Build Failed. Check your Dockerfile content."
+    exit 1
+fi
+echo -e "${C_SUCCESS}[✔]${RESET} Building high-speed container image... SUCCESSFUL! \033[K"
 
-# Build Image
-dynamic_box "BUILDING CONTAINER" "Building Docker image..." "${LYELLOW}"
-docker build -t "$IMAGE" . --quiet &
-BUILD_PID=$!
-spinner $BUILD_PID "Building Docker image"
-dynamic_box "BUILDING CONTAINER" "Build complete" "${GREEN}"
-sleep 1
+# 3. PUSH
+echo -ne "${C_INFO}[*]${RESET} Pushing to Global Registry...\r"
+if ! docker push "$IMAGE" --quiet > /dev/null 2>&1; then
+    echo -e "${C_ERROR}[✘]${RESET} Push Failed. Check your internet or permissions."
+    exit 1
+fi
+echo -e "${C_SUCCESS}[✔]${RESET} Pushing to Global Registry... SUCCESSFUL! \033[K"
 
-# Push Image
-dynamic_box "PUSHING TO REGISTRY" "Uploading to gcr.io..." "${LBLUE}"
-docker push "$IMAGE" --quiet &
-PUSH_PID=$!
-spinner $PUSH_PID "Pushing to Container Registry"
-dynamic_box "PUSHING TO REGISTRY" "Push complete" "${GREEN}"
-sleep 1
-
-# Deploy to Cloud Run
-dynamic_box "DEPLOYING TO CLOUD RUN" "Creating service in $REGION..." "${LCYAN}"
+# --- Deploy to Cloud Run (Corrected Port) ---
+echo -e "${C_INFO}[*]${RESET} Deploying to Cloud Run in ${REGION}..."
 gcloud run deploy "$SERVICE_NAME" \
     --image "$IMAGE" \
     --platform managed \
@@ -215,78 +206,240 @@ gcloud run deploy "$SERVICE_NAME" \
     --port 8080 \
     --cpu "$CPU" \
     --memory "$MEMORY" \
-    --concurrency 250 \
+    --cpu-boost \
+    --concurrency 10 \
     --timeout 3600 \
     --min-instances 1 \
     --max-instances 1 \
     --no-cpu-throttling \
     --session-affinity \
-    --quiet &
-DEPLOY_PID=$!
-spinner $DEPLOY_PID "Deploying to Cloud Run"
+    --quiet
 
-# Check deployment success
-if gcloud run services describe "$SERVICE_NAME" --region "$REGION" &>/dev/null; then
-    dynamic_box "DEPLOYING TO CLOUD RUN" "Deployment successful" "${GREEN}"
-else
-    dynamic_box "DEPLOYING TO CLOUD RUN" "Deployment failed" "${RED}"
-    troubleshooting_box "Cloud Run deployment failed" "Check quota in $REGION or try different region"
-    countdown 10 "Returning to menu..."
-    exit 1
-fi
+DEPLOY_EXIT=$?
 
-# Get Service URL
+# --- Resolve CLEAN_HOST immediately after deploy (MUST be before URI generation) ---
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --format='value(status.url)' 2>/dev/null)
 CLEAN_HOST=$(echo "$SERVICE_URL" | sed 's|https://||')
 
-# Generate VLESS URI
-VLESS_URI="vless://${UUID}@www.gstatic.com:443?encryption=none&security=tls&type=ws&path=%2F${WS_PATH#/}&host=${CLEAN_HOST}&sni=firebase-settings.crashlytics.com&fp=chrome#${SERVICE_NAME}"
+if [ $DEPLOY_EXIT -eq 0 ] && [ -n "$CLEAN_HOST" ]; then
+    echo -e "LOCKING SERVER TO 10 USERS... > SUCCESSFUL! \033[K"
 
-# Success Banner
-clear
+    echo -e "\n--- PRIVATE ACCESS KEYS GENERATED ---"
+    # Use process substitution (< <(...)) instead of pipe to avoid subshell — COUNT must persist
+    COUNT=0
+    while read -r KEY; do
+        COUNT=$((COUNT+1))
+        echo "USER SLOT $COUNT: vless://${KEY}@${CLEAN_HOST}:443?encryption=none&security=tls&type=ws&host=${CLEAN_HOST}&sni=${CLEAN_HOST}&path=%2Fprvtspyyy#PRIVATE_SLOT_${COUNT}"
+    done < <(grep -o '"id": *"[^"]*"' config.json | cut -d'"' -f4)
+else
+    echo -e "DEPLOYMENT FAILED. Check Cloud Console."
+    exit 1
+fi
+
+# --- URI Generation (CLEAN_HOST is now defined) ---
+WS_PATH_CLEAN="${WS_PATH#/}"
+VLESS_URI="vless://${UUID}@${CLEAN_HOST}:443?encryption=none&security=tls&type=ws&path=%2F${WS_PATH_CLEAN}&host=${CLEAN_HOST}&sni=${CLEAN_HOST}&fp=chrome#${SERVICE_NAME}"
 echo ""
-echo -e "${GREEN}${BOLD}╔════════════════════════════════════════════════════════════════════════════╗${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}                                                                            ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${WHITE}${BOLD}DEPLOYMENT SUCCESSFUL${RESET}                                                  ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}github.com/saekacutie/scriptv2${RESET}                                       ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}                                                                            ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}╠════════════════════════════════════════════════════════════════════════════╣${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}                                                                            ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}Service:${RESET}     ${WHITE}${SERVICE_NAME}${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}Address:${RESET}     ${WHITE}www.gstatic.com${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}SNI:${RESET}         ${WHITE}firebase-settings.crashlytics.com${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}Host:${RESET}        ${WHITE}${CLEAN_HOST}${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}Port:${RESET}        ${WHITE}443${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}UUID:${RESET}        ${WHITE}${UUID}${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}WS Path:${RESET}     ${WHITE}${WS_PATH}${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}Transport:${RESET}   ${WHITE}WebSocket (ws)${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}Security:${RESET}    ${WHITE}TLS (Google Managed)${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}Region:${RESET}      ${WHITE}${REGION}${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}CPU:${RESET}         ${WHITE}${CPU}${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}Memory:${RESET}      ${WHITE}${MEMORY}${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}Timeout:${RESET}     ${WHITE}3600s${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}AdBlock:${RESET}     ${WHITE}Active (All Ads)${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}                                                                            ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}╠════════════════════════════════════════════════════════════════════════════╣${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}                                                                            ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${CYAN}${BOLD}Import URI:${RESET}                                                         ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${WHITE}${VLESS_URI:0:68}${RESET}  ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${WHITE}${VLESS_URI:68:68}${RESET}  ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}   ${WHITE}${VLESS_URI:136:68}${RESET}  ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}║${RESET}                                                                            ${GREEN}${BOLD}║${RESET}"
-echo -e "${GREEN}${BOLD}╚════════════════════════════════════════════════════════════════════════════╝${RESET}"
+echo -e "${C_SUCCESS}╔════════════════════════════════════════════════════════════════════════════╗${RESET}"
+echo -e "${C_SUCCESS}║${RESET}                                                                            ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${BOLD}${WHITE}$(math_bold "DEPLOYMENT SUCCESSFUL")${RESET}                                          ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}created by prvtspyyy${RESET}                                              ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}║${RESET}                                                                            ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}╠════════════════════════════════════════════════════════════════════════════╣${RESET}"
+echo -e "${C_SUCCESS}║${RESET}                                                                            ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}Service:${RESET}     ${BOLD}${SERVICE_NAME}${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}Address:${RESET}     ${BOLD}www.gstatic.com${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}SNI:${RESET}         ${BOLD}firebase-settings.crashlytics.com${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}Host:${RESET}        ${BOLD}${CLEAN_HOST}${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}Port:${RESET}        ${BOLD}443${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}UUID:${RESET}        ${BOLD}${UUID}${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}WS Path:${RESET}     ${BOLD}${WS_PATH}${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}Transport:${RESET}   ${BOLD}WebSocket (ws)${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}Security:${RESET}    ${BOLD}TLS (Google Managed)${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}Region:${RESET}      ${BOLD}${REGION}${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}CPU:${RESET}         ${BOLD}${CPU}${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}Memory:${RESET}      ${BOLD}${MEMORY}${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}Timeout:${RESET}     ${BOLD}3600s${RESET}"
+echo -e "${C_SUCCESS}║${RESET}                                                                            ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}╠════════════════════════════════════════════════════════════════════════════╣${RESET}"
+echo -e "${C_SUCCESS}║${RESET}                                                                            ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_PLAIN}Import URI:${RESET}                                                         ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${VLESS_URI}  ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}║${RESET}                                                                            ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}╚════════════════════════════════════════════════════════════════════════════╝${RESET}"
+echo ""
+echo -e "${C_INFO}[i]${RESET} Deployment Automation created by prvtspyyy"
 echo ""
 
-# Troubleshooting Tips
-troubleshooting_box "Connection timeout?" "Enable Auto Ping in HTTP Custom (25s interval)"
-troubleshooting_box "No internet when connected?" "Verify Host header matches exactly: $CLEAN_HOST"
-troubleshooting_box "Container failed to start?" "Check Cloud Run logs in GCP Console"
-info_box "Deployment saved to: /tmp/vless-uri.txt"
-info_box "To view again: cat /tmp/vless-uri.txt"
+# ==============================================
+#        AUTOMATIC NETWORK MONITOR (BACKGROUND)
+# ==============================================
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo -e "${C_PLAIN}$(math_bold "STARTING NETWORK MONITOR")${RESET}"
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+
+# Check if network-monitor.sh exists and launch it in background
+if [ -f "./network-monitor.sh" ]; then
+    echo -e "${C_INFO}[*]${RESET} Launching network monitor in background..."
+    chmod +x ./network-monitor.sh
+    nohup ./network-monitor.sh "$SERVICE_NAME" "$REGION" > /dev/null 2>&1 &
+    MONITOR_PID=$!
+    echo -e "${C_SUCCESS}[✔]${RESET} Network monitor started (PID: $MONITOR_PID)"
+    echo -e "${C_INFO}[*]${RESET} Logs will be saved to: ${BOLD}~/network-logs/${RESET}"
+    echo -e "${C_INFO}[*]${RESET} To stop monitor: ${BOLD}kill $MONITOR_PID${RESET}"
+else
+    echo -e "${C_WARN}[!]${RESET} network-monitor.sh not found. Skipping."
+    echo -e "${C_INFO}[*]${RESET} Add network-monitor.sh to your repository for automatic logging."
+fi
+
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+
+# ==============================================
+#        OUTPUT SELECTION (QR CODE + PING MONITOR)
+# ==============================================
+echo ""
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo -e "${C_PLAIN}$(math_bold "OUTPUT OPTIONS")${RESET}"
+echo -e "${C_HEADER}════════════════════════════════════════════════════════════════════════════${RESET}"
+echo ""
+echo -e "  ${C_ACCENT}[1]${RESET} Show QR Code (scan with phone)"
+echo -e "  ${C_ACCENT}[2]${RESET} Start Background Ping Monitor (keeps connection alive + logs)"
+echo -e "  ${C_ACCENT}[3]${RESET} Both (QR + Ping Monitor)"
+echo -e "  ${C_ACCENT}[4]${RESET} Exit"
+echo ""
+read -p "$(echo -e "${C_INFO}[?]${RESET} Select option [1-4]: ")" OUTPUT_CHOICE
+
+# Encode URI for QR code (safe multi-fallback)
+VLESS_URI_ENCODED=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$VLESS_URI" 2>/dev/null \
+    || echo -n "$VLESS_URI" | jq -sRr @uri 2>/dev/null \
+    || echo -n "$VLESS_URI" | sed 's/ /%20/g')
+
+# --- Function: Generate QR Code ---
+generate_qr() {
+    echo ""
+    echo -e "${C_INFO}[*]${RESET} Generating QR code..."
+    
+    if ! command -v qrencode &> /dev/null; then
+        echo -e "${C_WARN}[!]${RESET} Installing qrencode (one-time)..."
+        sudo apt-get update -qq && sudo apt-get install -y qrencode -qq 2>/dev/null
+    fi
+    
+    if command -v qrencode &> /dev/null; then
+        echo ""
+        echo -e "${C_PLAIN}Scan this QR code with your VLESS client:${RESET}"
+        echo ""
+        echo "$VLESS_URI" | qrencode -t ANSIUTF8
+        echo ""
+        echo -e "${C_SUCCESS}[✔]${RESET} QR code displayed above"
+    else
+        echo -e "${C_WARN}[!]${RESET} qrencode not available. Use this URI manually:"
+        echo -e "${BOLD}$VLESS_URI${RESET}"
+    fi
+}
+
+# --- Function: Start Background Ping Monitor (Zero Quota) ---
+start_ping_monitor() {
+    local TARGET="${CLEAN_HOST}"
+    local INTERVAL="${PING_INTERVAL:-25}"
+    local LOG_FILE="/tmp/vless-ping-$(date +%Y%m%d-%H%M%S).log"
+    
+    echo ""
+    echo -e "${C_INFO}[*]${RESET} Starting background ping monitor..."
+    echo -e "${C_INFO}[*]${RESET} Target: ${BOLD}${TARGET}${RESET}"
+    echo -e "${C_INFO}[*]${RESET} Interval: ${BOLD}${INTERVAL}s${RESET}"
+    echo -e "${C_INFO}[*]${RESET} Log: ${BOLD}${LOG_FILE}${RESET}"
+    
+    # Create the monitor script
+    cat > /tmp/ping-monitor.sh <<'MONITOR_EOF'
+#!/bin/bash
+TARGET="$1"
+INTERVAL="$2"
+LOG_FILE="$3"
+
+echo "$$" > /tmp/ping-monitor.pid
+echo "Ping monitor started with PID: $$"
+echo "Log file: $LOG_FILE"
+echo "Press Ctrl+C or run 'kill $$' to stop."
+echo ""
+
+while true; do
+    TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+    PING_RESULT=$(curl -o /dev/null -s -w '%{time_total}|%{http_code}' --max-time 5 "https://$TARGET/health" 2>/dev/null)
+    
+    if [ -n "$PING_RESULT" ]; then
+        RESPONSE_TIME=$(echo "$PING_RESULT" | cut -d'|' -f1)
+        HTTP_CODE=$(echo "$PING_RESULT" | cut -d'|' -f2)
+        LATENCY_MS=$(echo "$RESPONSE_TIME * 1000" | bc 2>/dev/null | cut -d'.' -f1)
+        
+        if [ "$HTTP_CODE" = "200" ]; then
+            echo "[$TIMESTAMP] UP   | ${LATENCY_MS}ms | HTTP $HTTP_CODE" | tee -a "$LOG_FILE"
+        else
+            echo "[$TIMESTAMP] WARN | HTTP $HTTP_CODE" | tee -a "$LOG_FILE"
+        fi
+    else
+        echo "[$TIMESTAMP] DOWN | No response" | tee -a "$LOG_FILE"
+    fi
+    
+    sleep "$INTERVAL"
+done
+MONITOR_EOF
+
+    chmod +x /tmp/ping-monitor.sh
+    
+    # Start the monitor in background
+    nohup /tmp/ping-monitor.sh "$TARGET" "$INTERVAL" "$LOG_FILE" > /tmp/ping-monitor-output.log 2>&1 &
+    MONITOR_PID=$!
+    
+    sleep 1
+    if kill -0 $MONITOR_PID 2>/dev/null; then
+        echo ""
+        echo -e "${C_SUCCESS}╔════════════════════════════════════════════════════════════════════════════╗${RESET}"
+        echo -e "${C_SUCCESS}║${RESET}                    ${BOLD}${GREEN}PING MONITOR STARTED${RESET}                              ${C_SUCCESS}║${RESET}"
+        echo -e "${C_SUCCESS}╠════════════════════════════════════════════════════════════════════════════╣${RESET}"
+        echo -e "${C_SUCCESS}║${RESET}  ${CYAN}PID:${RESET}        ${BOLD}$MONITOR_PID${RESET}"
+        echo -e "${C_SUCCESS}║${RESET}  ${CYAN}Log File:${RESET}   ${BOLD}$LOG_FILE${RESET}"
+        echo -e "${C_SUCCESS}║${RESET}  ${CYAN}Interval:${RESET}   ${BOLD}${INTERVAL}s${RESET}"
+        echo -e "${C_SUCCESS}║${RESET}                                                                            ${C_SUCCESS}║${RESET}"
+        echo -e "${C_SUCCESS}║${RESET}  ${CYAN}Commands:${RESET}                                                              ${C_SUCCESS}║${RESET}"
+        echo -e "${C_SUCCESS}║${RESET}    View log:  ${GREEN}tail -f $LOG_FILE${RESET}${C_SUCCESS}║${RESET}"
+        echo -e "${C_SUCCESS}║${RESET}    Stop:       ${GREEN}kill $MONITOR_PID${RESET}${C_SUCCESS}║${RESET}"
+        echo -e "${C_SUCCESS}║${RESET}    Check:      ${GREEN}kill -0 $MONITOR_PID && echo 'Running'${RESET}${C_SUCCESS}║${RESET}"
+        echo -e "${C_SUCCESS}╚════════════════════════════════════════════════════════════════════════════╝${RESET}"
+        echo ""
+        echo -e "${C_WARN}[!]${RESET} Monitor will stop when Cloud Shell session ends."
+        echo -e "${C_INFO}[*]${RESET} For 24/7 monitoring, deploy the keepalive-monitor Cloud Run service."
+    else
+        echo -e "${C_ERROR}[✘]${RESET} Failed to start monitor."
+    fi
+}
+
+# --- Process User Choice ---
+case $OUTPUT_CHOICE in
+    1)
+        generate_qr
+        ;;
+    2)
+        start_ping_monitor
+        ;;
+    3)
+        generate_qr
+        start_ping_monitor
+        ;;
+    4)
+        echo -e "${C_INFO}[*]${RESET} Exiting..."
+        ;;
+    *)
+        echo -e "${C_WARN}[!]${RESET} Invalid choice. Exiting..."
+        ;;
+esac
+
+# Always save URI to file
+echo "$VLESS_URI" > /tmp/vless-uri.txt
 
 echo ""
-echo -e "${GREEN}${BOLD}Deployment Complete. Thank you for using scriptv2!${RESET}"
+echo -e "${C_SUCCESS}╔════════════════════════════════════════════════════════════════════════════╗${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${BOLD}${WHITE}$(math_bold "DEPLOYMENT COMPLETE")${RESET}                                            ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${C_ACCENT}created by prvtspyyy${RESET}                                              ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}║${RESET}   ${CYAN}URI saved to: /tmp/vless-uri.txt${RESET}                                 ${C_SUCCESS}║${RESET}"
+echo -e "${C_SUCCESS}╚════════════════════════════════════════════════════════════════════════════╝${RESET}"
 echo ""
-
-# Restore cursor
-tput cnorm
